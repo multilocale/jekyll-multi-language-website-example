@@ -3,7 +3,6 @@ layout: post
 title: 'Bienvenido a jekyll!'
 date: 2022-12-09 15:13:54 +0100
 categories: jekyll update
-language: es
 ---
 
 Encontrarás esta publicación en tu directorio `_posts`. Continúe, edítelo y reconstruya el sitio para ver sus cambios. Puede reconstruir el sitio de muchas maneras diferentes, pero la forma más común es ejecutar `jekyll serve`, que inicia un servidor web y regenera automáticamente su sitio cuando se actualiza un archivo.
