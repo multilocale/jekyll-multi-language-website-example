@@ -1,20 +1,26 @@
-<!DOCTYPE html>
-<html lang="{{ page.lang | default: site.lang | default: "en" }}">
-
+<!doctype html>
+<html lang="{{ site.active_lang }}">
   {%- include head.html -%}
-
   <body>
-
     {%- include header.html -%}
 
-    <main class="page-content" aria-label="Content">
-      <div class="wrapper">
-        {{ content }}
-      </div>
+    <main class="wrap" id="main">
+      {%- comment -%}
+        `page.missing_languages` (jekyll-polyglot ≥ 1.13) lists the languages a
+        page has *not* been translated into. It is deliberately empty for pages
+        that have no per-language source at all — a single template rendered
+        with the active dictionary is not a fallback — so this banner appears
+        only where a reader is genuinely looking at another language's prose.
+      {%- endcomment -%}
+      {%- if page.missing_languages contains site.active_lang -%}
+        <p class="notice" lang="{{ site.active_lang }}">
+          {{ site.data.strings.translation_missing_notice }}
+        </p>
+      {%- endif -%}
+
+      {{ content }}
     </main>
 
     {%- include footer.html -%}
-
   </body>
-
 </html>

@@ -1,0 +1,47 @@
+---
+permalink: /sitemap.xml
+sitemap: false
+---
+{%- comment -%}
+  Hand-written on purpose. jekyll-sitemap would run once per language and leave
+  three unrelated sitemaps at /sitemap.xml, /es/sitemap.xml and
+  /it/sitemap.xml, each claiming to describe the whole site.
+
+  This file is listed in `exclude_from_localization`, so Jekyll only reads it
+  during the default-language pass and it is written exactly once, at the root
+  of the domain — where a sitemap has to live.
+
+  Every URL is emitted once per language with xhtml:link alternates for all the
+  others, which is the form Google documents for multilingual sites. Every page
+  exists in every language: one with per-language sources uses them, one
+  without is rendered from the same source under each prefix.
+{%- endcomment -%}
+{%- assign documents = site.pages | concat: site.posts -%}
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+{%- for document in documents -%}
+{%- if document.sitemap == false -%}{%- continue -%}{%- endif -%}
+{%- assign fallback = document.permalink | default: document.url -%}
+{%- for language in site.languages -%}
+{%- assign target = document.permalink_lang[language] | default: fallback -%}
+{%- if language == site.default_lang -%}
+{%- assign prefix = '' -%}
+{%- else -%}
+{%- assign prefix = '/' | append: language -%}
+{%- endif %}
+  <url>
+    <loc>{{ site.url }}{{ site.baseurl }}{{ prefix }}{{ target }}</loc>
+{%- for alternate in site.languages -%}
+{%- assign alternate_target = document.permalink_lang[alternate] | default: fallback -%}
+{%- if alternate == site.default_lang -%}
+{%- assign alternate_prefix = '' -%}
+{%- else -%}
+{%- assign alternate_prefix = '/' | append: alternate -%}
+{%- endif %}
+    <xhtml:link rel="alternate" hreflang="{{ alternate }}" href="{{ site.url }}{{ site.baseurl }}{{ alternate_prefix }}{{ alternate_target }}" />
+{%- endfor %}
+    <xhtml:link rel="alternate" hreflang="x-default" href="{{ site.url }}{{ site.baseurl }}{{ document.permalink_lang[site.default_lang] | default: fallback }}" />
+  </url>
+{%- endfor -%}
+{%- endfor %}
+</urlset>

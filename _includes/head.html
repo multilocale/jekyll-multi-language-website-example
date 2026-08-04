@@ -1,0 +1,87 @@
+{%- comment -%}
+  `site.data.strings` is not a file. jekyll-polyglot merges
+  _data/<default_lang>/ and then _data/<active_lang>/ into the top level of
+  site.data before anything renders, so `strings` is the active language's
+  dictionary laid over the default language's. An untranslated key falls back
+  instead of rendering empty.
+
+  A page can set `title_key:` in its front matter to take its <title> from the
+  dictionary; pages that carry real prose (about, posts) set a plain `title:`
+  in their own language instead.
+{%- endcomment -%}
+{%- assign strings = site.data.strings -%}
+{%- assign page_title = page.title -%}
+{%- if page.title_key -%}{%- assign page_title = strings[page.title_key] -%}{%- endif -%}
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>
+    {%- if page_title -%}
+      {{ page_title }} — {{ site.title }}
+    {%- else -%}
+      {{ site.title }} — {{ strings.site_tagline }}
+    {%- endif -%}
+  </title>
+  <meta
+    name="description"
+    content="{{ page.description | default: strings.site_tagline | escape }}"
+  />
+
+  {%- comment -%}
+    canonical + hreflang, written by hand rather than with polyglot's
+    i18n_headers tag. That tag emits an alternate only for
+    languages that have their own source file, which is right for about.md and
+    the posts and wrong for everything else on this site: the home page, the
+    blog index and 404 have no per-language source at all, and polyglot still
+    renders them under every prefix. i18n_headers would have declared them
+    English-only while /es/ and /it/ copies sat in the output directory.
+
+    Every page here exists in every language, so every page gets the full set.
+
+    `page.permalink_lang` maps language => permalink for pages whose
+    translations share a `page_id`; anything else falls back to its own
+    permalink, which is exactly the URL polyglot rendered it at.
+  {%- endcomment -%}
+  {%- assign fallback_permalink = page.permalink | default: page.url -%}
+  {%- assign default_permalink = page.permalink_lang[site.default_lang] | default: fallback_permalink -%}
+  {%- assign canonical_permalink = page.permalink_lang[site.active_lang] | default: fallback_permalink -%}
+  {%- if site.active_lang == site.default_lang -%}
+    {%- assign canonical_prefix = '' -%}
+  {%- else -%}
+    {%- assign canonical_prefix = '/' | append: site.active_lang -%}
+  {%- endif -%}
+  <link rel="canonical" href="{{ site.url }}{{ site.baseurl }}{{ canonical_prefix }}{{ canonical_permalink }}" />
+  {%- comment -%}
+    These have to stay on one line each, in this exact shape. In a non-default
+    pass polyglot rewrites absolute links that point at site.url, and the one
+    thing that stops it mangling the default-language alternate into
+    /es/... is a lookbehind for the literal text `hreflang="en" href="`.
+    Break the attribute onto its own line and the tag silently starts lying.
+  {%- endcomment -%}
+  {%- for language in site.languages -%}
+    {%- assign alternate_permalink = page.permalink_lang[language] | default: fallback_permalink -%}
+    {%- if language == site.default_lang -%}
+      {%- assign alternate_prefix = '' -%}
+    {%- else -%}
+      {%- assign alternate_prefix = '/' | append: language -%}
+    {%- endif %}
+  <link rel="alternate" hreflang="{{ language }}" href="{{ site.url }}{{ site.baseurl }}{{ alternate_prefix }}{{ alternate_permalink }}" />
+  {%- endfor %}
+  <link rel="alternate" hreflang="x-default" href="{{ site.url }}{{ site.baseurl }}{{ default_permalink }}" />
+
+  {%- comment -%}
+    assets/ is in exclude_from_localization, so this URL must NOT be rewritten
+    to /es/assets/... in the Spanish pass. The static_href block below is
+    polyglot's opt-out from link relativization.
+
+    Two things a Liquid comment does NOT protect you from, both of which cost
+    a build: a registered block tag written out in full (comment keeps parsing
+    tags it knows, so its own endcomment is read as that block's terminator),
+    and an unbalanced output expression. Mention tags by name in prose here,
+    never in their delimiters.
+  {%- endcomment -%}
+  <link
+    rel="stylesheet"
+    {% static_href %}href="{{ site.baseurl }}/assets/css/style.css"{% endstatic_href %}
+  />
+</head>

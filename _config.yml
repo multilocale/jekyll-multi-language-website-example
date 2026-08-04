@@ -1,56 +1,50 @@
-# Welcome to Jekyll!
+# Multilocale Jekyll example — site configuration.
 #
-# This config file is meant for settings that affect your whole blog, values
-# which you are expected to set up once and rarely edit after that. If you find
-# yourself editing this file very often, consider using Jekyll's data files
-# feature for the data you need to update frequently.
-#
-# For technical reasons, this file is *NOT* reloaded automatically when you use
-# 'bundle exec jekyll serve'. If you change this file, please restart the server process.
-#
-# If you need help with YAML syntax, here are some quick references for you:
-# https://learn-the-web.algonquindesign.ca/topics/markdown-yaml-cheat-sheet/#yaml
-# https://learnxinyminutes.com/docs/yaml/
-#
-# Site settings
-# These are used to personalize your new site. If you look in the HTML files,
-# you will see them accessed via {{ site.title }}, {{ site.email }}, and so on.
-# You can create any custom variable you would like, and they will be accessible
-# in the templates via {{ site.myvariable }}.
+# Read README.md first; this file only makes sense next to it.
 
-title: Your awesome title
-email: your-email@example.com
-description: >- # this means to ignore newlines until "baseurl:"
-  Write an awesome description for your new site here. You can edit this
-  line in _config.yml. It will appear in your document head meta (for
-  Google search results) and in your feed.xml site description.
-baseurl: '' # the subpath of your site, e.g. /blog
-url: '' # the base hostname & protocol for your site, e.g. http://example.com
-twitter_username: jekyllrb
-github_username: jekyll
+title: Multilocale Jekyll example
+# Replace with the domain you deploy to. jekyll-polyglot needs it to build
+# language switchers and the canonical/hreflang tags, and sitemap.xml uses it
+# for absolute URLs. Leaving it wrong is the single most common reason an
+# otherwise-correct multi-language Jekyll site gets indexed badly.
+url: https://example.com
+baseurl: ''
 
-# Build settings
-theme: minima
+# ---------------------------------------------------------------------------
+# jekyll-polyglot
+# ---------------------------------------------------------------------------
+# Jekyll is run once per language. The default language is written to the root
+# of _site; every other language gets its own subdirectory (_site/es, _site/it)
+# and all its internal links are rewritten to stay inside it.
+languages: ['en', 'es', 'it']
+default_lang: 'en'
+
+# Built once, shared by every language. Files and directories listed here are
+# emitted only in the default-language pass, and links to them are left alone
+# rather than being rewritten to /es/... — which is exactly what you want for
+# a stylesheet, and mandatory for robots.txt and sitemap.xml, which must exist
+# once at the root of the domain.
+exclude_from_localization: ['assets/', 'robots.txt', 'sitemap.xml']
+
+# Polyglot forks one process per language. Set to false on Windows, or if you
+# ever see a plugin misbehave under it.
+parallel_localization: true
+
+# Posts keep a per-language slug (/blog/… vs /es/blog/…), which is why the
+# translated posts are linked to each other with `page_id` instead of a shared
+# permalink. See README.md § "Two ways to translate".
+permalink: /blog/:title/
+
 plugins:
-  - jekyll-feed
-  - jekyll-sitemap
-languages: ['en', 'es']
-# Exclude from processing.
-# The following items will not be processed, by default.
-# Any item listed under the `exclude:` key here will be automatically added to
-# the internal "default list".
-#
-# Excluded items can be processed by explicitly listing the directories or
-# their entries' file path in the `include:` list.
-#
-# exclude:
-#   - .sass-cache/
-#   - .jekyll-cache/
-#   - gemfiles/
-#   - Gemfile
-#   - Gemfile.lock
-#   - node_modules/
-#   - vendor/bundle/
-#   - vendor/cache/
-#   - vendor/gems/
-#   - vendor/ruby/
+  - jekyll-polyglot
+
+# Repository files that are not part of the website. Jekyll appends its own
+# defaults (Gemfile, vendor/, node_modules/, …) to this list rather than
+# replacing them.
+exclude:
+  - AGENTS.md
+  - LICENSE
+  - Makefile
+  - README.md
+  - multilocale.json
+  - scripts/

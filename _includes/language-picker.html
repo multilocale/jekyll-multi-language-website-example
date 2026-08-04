@@ -1,0 +1,38 @@
+{%- assign strings = site.data.strings -%}
+{%- comment -%}
+  `page.permalink_lang` is a { language => permalink } map that polyglot builds
+  from the `page_id` front matter shared by a page's translations. It is how
+  the Spanish blog post at /es/blog/traducir-un-sitio-jekyll/ can be reached
+  from the English one at /blog/translating-a-jekyll-site/ even though the two
+  slugs share no characters.
+
+  Pages that have no per-language source file (the home page, 404) are not in
+  that map, and fall back to their own permalink — correct, because polyglot
+  renders those from the same file under every language prefix.
+{%- endcomment -%}
+<nav class="languages" aria-label="{{ strings.language_picker_label | escape }}">
+  {%- for language in site.languages -%}
+    {%- assign target = page.permalink_lang[language] | default: page.permalink | default: page.url -%}
+    {%- if language == site.active_lang -%}
+      <span class="languages__current" lang="{{ language }}" aria-current="true"
+        >{{ site.data.languages[language] }}</span
+      >
+    {%- elsif language == site.default_lang -%}
+      {%- comment -%}
+        The default language lives at the root, so its URL must survive the
+        rewrite that would otherwise turn /about/ into /es/about/ while we are
+        building Spanish. Links that already start with a language code are
+        left alone by polyglot, so only this branch needs static_href.
+      {%- endcomment -%}
+      <a
+        lang="{{ language }}"
+        {% static_href %}href="{{ site.baseurl }}{{ target }}"{% endstatic_href %}
+        >{{ site.data.languages[language] }}</a
+      >
+    {%- else -%}
+      <a lang="{{ language }}" href="{{ site.baseurl }}/{{ language }}{{ target }}"
+        >{{ site.data.languages[language] }}</a
+      >
+    {%- endif -%}
+  {%- endfor -%}
+</nav>

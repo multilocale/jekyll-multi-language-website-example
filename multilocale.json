@@ -1,0 +1,7 @@
+{
+  "organizationId": "REPLACE_WITH_YOUR_ORGANIZATION_ID",
+  "projectId": "REPLACE_WITH_YOUR_PROJECT_ID",
+  "format": "json",
+  "extension": "json",
+  "paths": ["_data/%lang%/strings.json"]
+}

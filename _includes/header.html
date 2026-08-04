@@ -1,0 +1,20 @@
+{%- assign strings = site.data.strings -%}
+<header class="masthead">
+  <div class="wrap masthead__inner">
+    {%- comment -%}
+      Every href here is written un-prefixed, as if the site were
+      single-language. In the Spanish and Italian passes polyglot rewrites
+      href="/blog/" to href="/es/blog/" in the rendered HTML — that is why the
+      navigation does not need to know which language it is in.
+    {%- endcomment -%}
+    <a class="masthead__title" href="{{ site.baseurl }}/">{{ site.title }}</a>
+
+    <nav class="masthead__nav" aria-label="{{ strings.nav_home | escape }}">
+      <a href="{{ site.baseurl }}/">{{ strings.nav_home }}</a>
+      <a href="{{ site.baseurl }}/blog/">{{ strings.nav_blog }}</a>
+      <a href="{{ site.baseurl }}/about/">{{ strings.nav_about }}</a>
+    </nav>
+
+    {% include language-picker.html %}
+  </div>
+</header>

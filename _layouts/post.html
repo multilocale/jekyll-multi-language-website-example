@@ -1,27 +1,22 @@
 ---
 layout: default
 ---
-<article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
 
-  <header class="post-header">
-    <h1 class="post-title p-name" itemprop="name headline">{{ page.title | escape }}</h1>
-    <p class="post-meta">
-      <time class="dt-published" datetime="{{ page.date | date_to_xmlschema }}" itemprop="datePublished">
-        {%- assign date_format = site.minima.date_format | default: "%b %-d, %Y" -%}
-        {{ page.date | date: date_format }}
-      </time>
-      {%- if page.author -%}
-        • <span itemprop="author" itemscope itemtype="http://schema.org/Person"><span class="p-author h-card" itemprop="name">{{ page.author }}</span></span>
-      {%- endif -%}</p>
-  </header>
+{%- assign strings = site.data.strings -%}
 
-  <div class="post-content e-content" itemprop="articleBody">
-    {{ content }}
-  </div>
-
-  {%- if site.disqus.shortname -%}
-    {%- include disqus_comments.html -%}
-  {%- endif -%}
-
-  <a class="u-url" href="{{ page.url | relative_url }}" hidden></a>
+<article class="prose" lang="{{ page.rendered_lang | default: site.active_lang }}">
+  <h1>{{ page.title }}</h1>
+  {%- comment -%}
+    Jekyll's `date:` filter has no notion of locale: `%B` always writes
+    "August", never "agosto". Rather than ship a wrong-language month name in
+    two of three languages, the label is translated and the date itself is
+    written in the language-neutral ISO form.
+  {%- endcomment -%}
+  <p class="post__meta">
+    {{ strings.blog_posted_on }}
+    <time datetime="{{ page.date | date_to_xmlschema }}"
+      >{{ page.date | date: '%Y-%m-%d' }}</time
+    >
+  </p>
+  {{ content }}
 </article>

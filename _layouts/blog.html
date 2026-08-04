@@ -1,0 +1,33 @@
+---
+layout: default
+---
+
+{%- assign strings = site.data.strings -%}
+
+<h1>{{ strings.blog_title }}</h1>
+
+{{ content }}
+
+<ul class="posts">
+  {%- comment -%}
+    In the Spanish pass `site.posts` already contains only the Spanish posts —
+    plus the English original of any post nobody has translated yet, so the
+    list never develops holes. Polyglot does that filtering in a post_read
+    hook, before anything renders.
+  {%- endcomment -%}
+  {%- for post in site.posts -%}
+    <li class="posts__item">
+      <p class="post__meta">
+        {{ strings.blog_posted_on }}
+        <time datetime="{{ post.date | date_to_xmlschema }}"
+          >{{ post.date | date: '%Y-%m-%d' }}</time
+        >
+      </p>
+      <h2><a href="{{ post.url | relative_url }}">{{ post.title }}</a></h2>
+      <p>{{ post.description }}</p>
+      <a class="more" href="{{ post.url | relative_url }}"
+        >{{ strings.blog_read_more }}</a
+      >
+    </li>
+  {%- endfor -%}
+</ul>

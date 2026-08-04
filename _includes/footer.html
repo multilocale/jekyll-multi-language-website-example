@@ -1,0 +1,27 @@
+{%- assign strings = site.data.strings -%}
+<footer class="colophon">
+  <div class="wrap">
+    <p>
+      {{ strings.footer_note }}
+      {% comment -%}
+        No static_href here on purpose: polyglot only rewrites root-relative
+        links (and absolute ones under site.url), so an external URL needs no
+        protection — and would in fact break, because the ferh= that
+        static_href emits is only converted back to href= for links starting
+        with the baseurl.
+      {%- endcomment -%}
+      <a href="https://github.com/multilocale/jekyll-multi-language-website-example"
+        >{{ strings.footer_source }}</a
+      >
+    </p>
+    <p class="colophon__meta">
+      {%- comment -%}
+        multilocale download injects a "locale" key into every dictionary it
+        writes. Printing it here is a live assertion that this page is reading
+        the dictionary it is supposed to be reading.
+      {%- endcomment -%}
+      <code>site.data.strings.locale</code> = <code>{{ strings.locale }}</code> ·
+      <code>site.active_lang</code> = <code>{{ site.active_lang }}</code>
+    </p>
+  </div>
+</footer>

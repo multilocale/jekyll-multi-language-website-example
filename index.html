@@ -1,0 +1,14 @@
+---
+layout: home
+permalink: /
+---
+
+{%- comment -%}
+  No `lang:` and no `page_id:` on purpose. This page has no per-language source
+  file: polyglot renders this one file three times, and every word on it comes
+  out of site.data.strings. That is the pattern you want for anything that is
+  chrome rather than prose — landing pages, navigation, forms, error pages.
+
+  Compare with about.md, which does carry `lang:` and `page_id:` because its
+  body is prose that a dictionary cannot hold.
+{%- endcomment -%}

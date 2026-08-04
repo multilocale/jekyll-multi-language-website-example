@@ -1,0 +1,7 @@
+# Endonyms for the language picker: the name of each language *in* that
+# language. Deliberately NOT in _data/<lang>/strings.json — "Español" is
+# spelled the same on every page of the site, so translating it three times
+# would be three chances to get it wrong.
+en: English
+es: Español
+it: Italiano

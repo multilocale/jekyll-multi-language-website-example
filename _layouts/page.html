@@ -1,14 +1,12 @@
 ---
 layout: default
 ---
-<article class="post">
 
-  <header class="post-header">
-    <h1 class="post-title">{{ page.title | escape }}</h1>
-  </header>
+{%- assign strings = site.data.strings -%}
+{%- assign heading = page.title -%}
+{%- if page.title_key -%}{%- assign heading = strings[page.title_key] -%}{%- endif -%}
 
-  <div class="post-content">
-    {{ content }}
-  </div>
-
+<article class="prose" lang="{{ page.rendered_lang | default: site.active_lang }}">
+  <h1>{{ heading }}</h1>
+  {{ content }}
 </article>

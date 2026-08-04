@@ -2,33 +2,34 @@
 layout: default
 ---
 
-<div class="home">
-  {%- if page.title -%}
-    <h1 class="page-heading">{{ page.title }}</h1>
-  {%- endif -%}
+{%- assign strings = site.data.strings -%}
 
-  {{ content }}
+<section class="hero">
+  <h1>{{ strings.home_headline }}</h1>
+  <p class="lede">{{ strings.home_intro }}</p>
+</section>
 
-  {%- if site.posts.size > 0 -%}
-    <h2 class="post-list-heading">{% t Posts %}</h2>
-    <ul class="post-list">
-      {%- for post in site.posts -%}
-      <li>
-        {%- assign date_format = site.minima.date_format | default: "%b %-d, %Y" -%}
-        <span class="post-meta">{{ post.date | date: date_format }}</span>
-        <h3>
-          <a class="post-link" href="{{ post.url | relative_url }}">
-            {{ post.title | escape }}
-          </a>
-        </h3>
-        {%- if site.show_excerpts -%}
-          {{ post.excerpt }}
-        {%- endif -%}
-      </li>
-      {%- endfor -%}
-    </ul>
+<section>
+  <h2>{{ strings.home_how_title }}</h2>
+  <ol class="steps">
+    <li>
+      <h3>{{ strings.home_step_1_title }}</h3>
+      <p>{{ strings.home_step_1_body }}</p>
+    </li>
+    <li>
+      <h3>{{ strings.home_step_2_title }}</h3>
+      <p>{{ strings.home_step_2_body }}</p>
+    </li>
+    <li>
+      <h3>{{ strings.home_step_3_title }}</h3>
+      <p>{{ strings.home_step_3_body }}</p>
+    </li>
+  </ol>
+</section>
 
-    <p class="rss-subscribe">subscribe <a href="{{ "/feed.xml" | relative_url }}">via RSS</a></p>
-  {%- endif -%}
+<section class="callout">
+  <h2>{{ strings.home_missing_title }}</h2>
+  <p>{{ strings.home_missing_body }}</p>
+</section>
 
-</div>
+{{ content }}

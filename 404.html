@@ -1,25 +1,15 @@
 ---
-permalink: /404.html
 layout: default
+permalink: /404.html
+title_key: error_title
+sitemap: false
 ---
 
-<style type="text/css" media="screen">
-  .container {
-    margin: 10px auto;
-    max-width: 600px;
-    text-align: center;
-  }
-  h1 {
-    margin: 30px 0;
-    font-size: 4em;
-    line-height: 1;
-    letter-spacing: -1px;
-  }
-</style>
+{%- assign strings = site.data.strings -%}
 
-<div class="container">
-  <h1>404</h1>
-
-  <p><strong>Page not found :(</strong></p>
-  <p>The requested page could not be found.</p>
+<div class="error">
+  <p class="error__code">404</p>
+  <h1>{{ strings.error_title }}</h1>
+  <p>{{ strings.error_body }}</p>
+  <p><a href="{{ site.baseurl }}/">{{ strings.error_home }}</a></p>
 </div>
