@@ -18,6 +18,7 @@ make build     # jekyll build → _site/ (en at the root, es/ and it/ beneath)
 make check     # build + assert each language really rendered  ← run this
 make serve     # http://127.0.0.1:4000
 make download  # pull translations from multilocale.com into _data/
+make import    # push _data/ up — ONE TIME ONLY, per project; see below
 ```
 
 `make check` is the gate. It builds, then asserts that each language directory
@@ -36,9 +37,19 @@ of the same language if a `lang:` front-matter key is wrong.
 Never hard-code a sentence in a layout or include. If you find one, that is a
 bug.
 
-Key style: flat `snake_case`, one level deep. `multilocale import` accepts flat
-JSON only — a nested object is stored as an object and then machine-translated
-into garbage, spending credits.
+Key style: flat `snake_case`, one level deep. A Multilocale phrase is a flat
+key/value pair. On CLI 1.3.1 — the version this repository pins — `import`
+flattens a nested dictionary into dot paths (`checkout.failed`), and
+`--no-flatten` makes it refuse the file instead. Up to 1.2.2 it uploaded the
+nested object verbatim, which was then machine-translated into garbage,
+spending credits. Keep the files flat either way; `{{ site.data.strings.key }}`
+is what the layouts read, and a dot in a key is awkward to reach from Liquid.
+
+1.3.0 flattened, but escaped every key segment while doing it — including in a
+dictionary that was already flat — so `home.title` became `home\.title` on the
+server with no warning. These keys are flat `snake_case` with no dots, so
+nothing here was corrupted, but do not lower the pin below 1.3.1 on that basis:
+the recipe in `README.md` is copied by people whose keys do have dots.
 
 File format: the committed files are byte-identical to what `multilocale
 download` writes — keys sorted, two-space indent, trailing newline, and a
@@ -93,21 +104,58 @@ a language by name; if you find yourself adding one, that is the wrong fix.
 
 ## Multilocale CLI
 
-Run it with `npx multilocale@latest <command>`; this repository has no
-`package.json` and does not need one. `multilocale.json` supplies the project
-so no command drops into the interactive project picker — that picker hangs
-non-interactive sessions.
+Run it with npx; this repository has no `package.json` and does not need one.
+**1.3.1 is the minimum usable version.** There is no dependency file to carry
+that pin, so the `Makefile` does, in one variable:
 
-The two placeholders in `multilocale.json` are placeholders on purpose. A
-`download` against them fails fast with a 404 instead of writing files from
-somebody else's project.
+```make
+MULTILOCALE_VERSION ?= ^1.3.1
+```
+
+Both CLI targets go through it, and so should anything you add. Three reasons
+1.3.1 is the floor rather than a preference: `import` flattens nested
+dictionaries instead of storing them as objects and billing to translate them;
+it does that **without** escaping the keys of a dictionary that was already
+flat, which 1.3.0 did (`home.title` → `home\.title`, silently, and `nested` was
+reported false so nothing warned); and `projects update --paths` exists, which
+is the only way to put `_data/%lang%/strings.json` on the project — and the
+project's `paths` is what `download` actually obeys (see below).
+
+The range is a floor, not a delivery mechanism. npx caches its install keyed on
+the spec string, so leaving `^1.3.0` here can keep re-running the 1.3.0 tree it
+first resolved long after 1.3.1 has shipped. Bumping the spec is what actually
+moves a machine onto the fix.
+
+**Quote the spec.** `^` is a glob operator under `setopt extendedglob`, which
+oh-my-zsh enables, so a bare `npx multilocale@^1.3.1` dies with
+`zsh: no matches found: multilocale@^1.3.1` before npx is even reached. Write
+`npx "multilocale@^1.3.1"`. To try a newer CLI without editing anything:
+`make download MULTILOCALE_VERSION=latest`.
+
+`multilocale.json` supplies the project so no command drops into the
+interactive project picker; since 1.2.2 that picker is skipped without a TTY
+and the command fails fast instead, but on 1.2.0 and 1.2.1 it blocked a
+non-interactive session forever.
+
+The ids in `multilocale.json` are **real**: they point at
+`multilocale-jekyll-example` (project `930e31054fb33780b73a0efe`, locales
+en/es/it, `paths: ["_data/%lang%/strings.json"]`) in the maintainers'
+organization. The committed `_data/<lang>/strings.json` files are exactly what
+`multilocale download` writes from it — the round trip is closed, so a
+`download` with no upstream change leaves `git status` clean, and a drift check
+in CI would be meaningful.
+
+Your own session cannot read that project: the API scopes every project lookup
+to the caller's organization, so `download` returns 404 rather than writing
+somebody else's strings over yours. Put your own `organizationId`/`projectId`
+in `multilocale.json` before running any CLI command that touches the network.
 
 Full command reference:
 
 ```bash
-npx multilocale@latest --help
-npx multilocale@latest schema              # the command tree as JSON
-npx multilocale@latest skills get multilocale
+npx "multilocale@^1.3.1" --help
+npx "multilocale@^1.3.1" schema            # the command tree as JSON
+npx "multilocale@^1.3.1" skills get multilocale
 ```
 
 Agent skills: `npx skills add multilocale/skills`. MCP server:
@@ -115,17 +163,53 @@ Agent skills: `npx skills add multilocale/skills`. MCP server:
 
 Known CLI behaviour worth knowing before you script it:
 
-- `signup` creates a nameless bootstrap project with no locales and no paths.
-  Always `projects create` a real one.
-- `import` and `unused` read `paths` from the **project** and throw
-  `Cannot read properties of undefined (reading 'forEach')` when it is unset.
+- **`download` is the only file command that runs unaided in a Ruby site.**
+  `import`, `unused` and `localize` first classify the working directory as
+  Android (an `AndroidManifest.xml` somewhere below it) or JavaScript (any
+  `package.json` somewhere below it) and, finding neither here, exit with
+  `Could not detect project type` and a reminder that Android needs an
+  `AndroidManifest.xml` and JavaScript a `package.json`. `download` skips the
+  check and works as-is.
+  `make import` gets around it rather than around the CLI: it copies
+  `multilocale.json` and `_data/` into a `mktemp -d` staging tree, drops a
+  two-key stub `package.json` beside them, and runs `import` from there. The
+  JavaScript branch is then satisfied, the paths still resolve (`import`
+  matches files by suffix), the phrases land in the same project, and the
+  staging tree is removed on exit. That is how this repository's 81 phrases
+  (27 keys × en/es/it) were created, in one run.
+- `signup` no longer leaves a nameless project behind: the account's first
+  project is named after your email's local part and carries
+  `defaultLocale: "en"`, `locales: ["en"]` and
+  `paths: ["translations/%lang%.json"]`. Still `projects create` a real one for
+  this site, **and pass `--paths '_data/%lang%/strings.json'`** — a project
+  created without it has no `paths` at all, and `import` then falls back to
+  `translations/%lang%.json`, finds nothing under it and uploads zero phrases.
+  `projects update <id> --paths …` sets it after the fact.
 - `download` resolves `project.paths || config.paths` — a value set on the
-  server beats `multilocale.json`.
-- `unused` greps only `.js/.jsx/.ts/.tsx/.cjs/.mjs`, so it reports every key
-  here as unused. It is not.
+  server beats `multilocale.json`. The two agree here on purpose; if they ever
+  disagree, the file in this repository is the one that is being ignored.
+- `unused` greps only `.js/.jsx/.ts/.tsx/.cjs/.mjs` for usages, so it could
+  never see a Liquid template even if it ran here.
 - There is no YAML output format (`cjs`, `esm`, `json`, `js`, `swift` only),
   which is why the dictionaries are JSON rather than the `.yml` a Jekyll site
   would normally use.
+- `import` is **not idempotent**, wherever you run it from: each run mints a
+  fresh `_id` per phrase and the API upserts by `_id`, so importing twice stores
+  two copies of every key/locale rather than merging. The Makefile's comment on
+  the `import` target says the same thing.
+- Older releases: 1.2.0 and 1.2.1 threw
+  `Cannot read properties of undefined (reading 'forEach')` from
+  `import`/`unused` whenever the project had no `paths`,
+  `Cannot convert undefined or null to object` from `download` whenever a locale
+  had no phrases yet, and `uuid2 is not a function` from `import` on the first
+  phrase — meaning `import` had never once worked in a published build. All
+  three are fixed in 1.2.2; nested-dictionary flattening and
+  `projects update --paths` arrived in 1.3.0. Nothing below 1.3.0 can set this
+  site up from scratch, and 1.3.0 itself must not be used: its flattener
+  escaped every key segment of every dictionary, flat ones included, so
+  `home.title` was stored as `home\.title` with no warning. 1.3.1 decides the
+  escaping per dictionary. Nothing renames a phrase from the CLI, so keys
+  corrupted that way need a direct `PUT /api/phrases` or a delete-and-reimport.
 - Do not run write commands (`add`, `update`, `delete`, `share`, `localize`,
   `import`, `projects create`) against somebody else's session to try
   something out. They mutate real remote data and spend machine-translation

@@ -31,7 +31,18 @@ Ruby 3.2 or newer — this example is developed and CI-tested on **Ruby 4.0**
 two gems and a Windows-only time-zone shim are the entire `Gemfile`: no theme
 gem, no Sass, and no Node.js needed to build the site. The `multilocale` CLI
 is a Node package, but it is only needed to *change* the translations, and is
-run with `npx` rather than installed.
+run with `npx` rather than installed — **version 1.3.1 or newer**, pinned once
+in the `Makefile` as `MULTILOCALE_VERSION ?= ^1.3.1` because a Ruby project has
+no dependency file to put it in. Quote it if you type it yourself:
+`npx "multilocale@^1.3.1" …`, since `^` is a glob operator in zsh with
+`extendedglob` on.
+
+**Do not use 1.3.0.** It escaped every segment of every key on upload, so a
+dictionary written the ordinary way — `home.title`, `nav.blog` — was stored as
+`home\.title` and `nav\.blog`, silently, with no warning. 1.3.1 decides that
+escaping per dictionary and leaves an already-flat one alone. This site's keys
+are flat `snake_case` with no dots, which is the only reason its data survived
+1.3.0 untouched; a dictionary that uses dotted keys would not have.
 
 On macOS, `/usr/bin/ruby` is 2.6 and cannot run any of this. Install a current
 Ruby (`brew install ruby`, `rbenv`, `asdf`, …) and make sure it is ahead of
@@ -105,32 +116,46 @@ it comes from `page.missing_languages`.
 
 ## The workflow, end to end
 
+The `multilocale.json` committed here already holds real ids — they point at
+this example's own project in the maintainers' organization, which is how the
+committed dictionaries stay verifiably in sync with it. Every project lookup is
+scoped to the caller's organization, so with *your* session those ids are a
+404, not somebody else's data. Replace them in step 2.
+
 ### 1. Create an account
 
 No browser needed. The generated password is printed exactly once:
 
 ```bash
-npx multilocale@latest signup --email you@example.com --json
+npx "multilocale@^1.3.1" signup --email you@example.com --json
 ```
 
 If you already have one:
 
 ```bash
-npx multilocale@latest login
+npx "multilocale@^1.3.1" login
 ```
 
 ### 2. Create a project — do not use the one signup made
 
-`signup` leaves behind a nameless bootstrap project with no locales, no default
-locale and no paths, and several CLI commands throw on it. Make a real one:
+`signup`'s bootstrap project is named after your email and carries
+`locales: ["en"]` and `paths: ["translations/%lang%.json"]` — the wrong shape
+for this site. Make a real one, and give it the paths in the same breath:
 
 ```bash
-npx multilocale@latest projects create my-website \
+npx "multilocale@^1.3.1" projects create my-website \
   --locales en,es,it \
-  --default-locale en
+  --default-locale en \
+  --paths '_data/%lang%/strings.json'
 ```
 
-Copy the id it prints into `multilocale.json`, replacing both placeholders:
+`--paths` is not optional bookkeeping. `import` and `download` read the paths
+off the **project**, and a project that has none makes `import` look under
+`translations/%lang%.json`, find nothing, and upload zero phrases. If you
+already created the project without them:
+`npx "multilocale@^1.3.1" projects update my-website --paths '_data/%lang%/strings.json'`.
+
+Copy the ids it prints into `multilocale.json`, over the ones committed here:
 
 ```json
 {
@@ -148,44 +173,54 @@ it the CLI stops to ask which project you meant, which hangs CI and agents.
 ### 3. Push the strings that are already here
 
 ```bash
-npx multilocale@latest import
+make import
 ```
 
 This uploads `_data/en/strings.json`, `_data/es/strings.json` and
 `_data/it/strings.json` as phrases and machine-translates anything a locale is
-missing. **Run it once.** A second run creates duplicate rows rather than
-merging.
+missing — nothing, here, because all three files carry the same 27 keys.
+**Run it once.** A second run creates duplicate rows rather than merging: each
+run mints a fresh id per phrase and the API upserts by id.
+
+It is a `make` target rather than a bare `npx … import` because `import`
+refuses to run in a directory it cannot classify as an Android or JavaScript
+project — it looks for an `AndroidManifest.xml` or a `package.json` below the
+working directory, and a Jekyll site has neither, so it exits with
+`Could not detect project type`. The target copies `multilocale.json` and
+`_data/` into a temporary directory, puts a stub `package.json` beside them,
+runs `import` there, and deletes it afterwards. `download` has no such check
+and runs here directly.
 
 ### 4. Work on the translations
 
 In the web app, or from the terminal:
 
 ```bash
-npx multilocale@latest phrases list -l it
-npx multilocale@latest add "checkout_button" "Buy now"
-npx multilocale@latest update "nav_blog" "Diario" -l es
-npx multilocale@latest localize fr,de          # add locales, translate into them
+npx "multilocale@^1.3.1" phrases list -l it
+npx "multilocale@^1.3.1" add "checkout_button" "Buy now"
+npx "multilocale@^1.3.1" update "nav_blog" "Diario" -l es
+npx "multilocale@^1.3.1" localize fr,de        # add locales, translate into them
 ```
 
 `add` machine-translates into every configured locale. For a short or ambiguous
 string, say what it means — the model has nothing else to go on:
 
 ```bash
-npx multilocale@latest add "book" "Book" \
+npx "multilocale@^1.3.1" add "book" "Book" \
   --context "Verb on a button: reserve an appointment, not the noun"
 ```
 
 ### 5. Pull the files back and commit them
 
 ```bash
-npx multilocale@latest download     # or: make download
+make download     # npx "multilocale@^1.3.1" download
 git diff _data/
 ```
 
-`download` writes one file per locale in the project, at the `paths` from
-`multilocale.json`, sorted, two-space indented. The files in this repository
-are byte-identical to what it produces, so a `download` with no upstream
-changes leaves `git status` clean.
+`download` writes one file per locale in the project, at the project's `paths`,
+sorted, two-space indented, with a trailing newline. The files in this
+repository are byte-identical to what it produces — they were written by it —
+so a `download` with no upstream change leaves `git status` clean.
 
 Commit the result. The committed dictionaries are what make `git clone && make
 build` work with no network, no credentials and no account — the sync step is
@@ -194,7 +229,7 @@ how these files *change*, not how they *arrive*.
 ### 6. Adding a language
 
 ```bash
-npx multilocale@latest localize pt
+npx "multilocale@^1.3.1" localize pt
 ```
 
 then add `pt` to `languages:` in `_config.yml`, add `pt: Português` to
@@ -233,10 +268,21 @@ three copies of the same language if a `lang:` is wrong.
 
 ## Things that will bite you
 
-- **`multilocale import` accepts flat JSON only.** A nested object is stored as
-  an object and then machine-translated into garbage, spending credits. Keep
-  dictionaries one level deep; use `home_step_1_title`, not
-  `home: { step_1: { title } }`.
+- **A Multilocale phrase is a flat key/value pair.** Since 1.3.0 `import`
+  flattens a nested dictionary into dot-path keys (`home.step_1.title`), and
+  `--no-flatten` makes it refuse the file instead; up to 1.2.2 it stored the
+  object verbatim and then machine-translated it into garbage, spending
+  credits. Keep dictionaries one level deep either way — use
+  `home_step_1_title`, not `home: { step_1: { title } }` — because a dot-path
+  key is awkward to read back from Liquid.
+- **1.3.0 escaped keys it should not have.** That first flattener escaped every
+  segment of every key, including in a dictionary that was already flat, so
+  `home.title` uploaded as `home\.title` and nothing warned about it. Use
+  **1.3.1 or newer**, which decides escaping per dictionary: a nested one is
+  escaped so it can be split back apart exactly, a flat one passes through
+  untouched. If you ran `import` on 1.3.0 and see backslashes in your keys, the
+  CLI cannot rename a phrase — repair them with `PUT /api/phrases`, or delete
+  the keys and import again.
 - **`download` prefers the project's `paths` over `multilocale.json`.** If the
   project on the server has `paths` set, that value wins and your local
   configuration is ignored.
@@ -262,7 +308,7 @@ three copies of the same language if a `lang:` is wrong.
 ## Related
 
 - [`multilocale` CLI on npm](https://www.npmjs.com/package/multilocale) —
-  `npx multilocale@latest --help`
+  `npx "multilocale@^1.3.1" --help`
 - [Multilocale developer docs](https://www.multilocale.com/developers/)
 - [jekyll-polyglot](https://github.com/untra/polyglot)
 - Other examples: [Next.js](https://github.com/multilocale/nextjs-multi-language-website-example),
